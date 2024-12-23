@@ -1,136 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Name Selector</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        input, button {
-            padding: 10px;
-            margin: 5px 0;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            margin: 5px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Name Selector</h1>
-        <div>
-            <input type="text" id="name-input" placeholder="Enter name">
-            <button id="add-name-button">Add Name</button>
-        </div>
-        
-        <h2>Names List</h2>
-        <ul id="names-list"></ul>
-        
-        <div>
-            <input type="text" id="delete-name-input" placeholder="Enter name to delete">
-            <button id="delete-name-button">Delete Name</button>
-        </div>
-
-        <button id="select-name-button">Select Name</button>
-
-        <h2>Selected Name</h2>
-        <p id="selected-name"></p>
-
-        <h2>Selection Counts</h2>
-        <ul id="counts-list"></ul>
-
-        <button id="reset-button">Reset All</button>
-    </div>
-
-    <script>
-        function updateNamesList(names) {
-            const namesList = $("#names-list");
-            namesList.empty();
-            names.forEach(name => {
-                namesList.append(`<li>${name}</li>`);
-            });
-        }
-
-        function updateCountsList(counts) {
-            const countsList = $("#counts-list");
-            countsList.empty();
-            for (const [name, count] of Object.entries(counts)) {
-                countsList.append(`<li>${name}: ${count} times</li>`);
-            }
-        }
-
-        $(document).ready(function () {
-            // Add a name
-            $("#add-name-button").click(function () {
-                const name = $("#name-input").val();
-                if (name) {
-                    $.post("/add_name", { name: name }, function (response) {
-                        if (response.success) {
-                            updateNamesList(response.names);
-                            $("#name-input").val("");
-                        }
-                    });
-                }
-            });
-
-            // Delete a name
-            $("#delete-name-button").click(function () {
-                const nameToDelete = $("#delete-name-input").val();
-                if (nameToDelete) {
-                    $.post("/delete_name", { delete_name: nameToDelete }, function (response) {
-                        if (response.success) {
-                            updateNamesList(response.names);
-                            updateCountsList(response.counts);
-                            $("#delete-name-input").val("");  // Clear input after deletion
-                        }
-                    });
-                }
-            });
-
-            // Select a name
-            $("#select-name-button").click(function () {
-                $.post("/select_name", {}, function (response) {
-                    if (response.success) {
-                        $("#selected-name").text(response.selected_name);
-                        updateCountsList(response.counts);
-                    } else {
-                        alert(response.error);
-                    }
-                });
-            });
-
-            // Reset all names and counts
-            $("#reset-button").click(function () {
-                $.post("/reset", {}, function (response) {
-                    if (response.success) {
-                        updateNamesList(response.names);
-                        updateCountsList(response.counts);
-                    }
-                });
-            });
-
-            // Load counts on page load
-            $.get("/get_counts", function (counts) {
-                updateCountsList(counts);
-            });
-        });
-    </script>
-</body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,11 +59,18 @@
 
         <h2>Names List</h2>
         <ul id="names-list"></ul>
+
+        <!-- Delete Name Section -->
+        <h2>Delete Name</h2>
+        <input type="text" id="delete-name-input" placeholder="Enter name to delete">
+        <button id="delete-name-button">Delete Name</button>
+
         <button id="select-name-button">Select Name</button>
         <button id="reset-button">Reset</button>
-        <button id="delete-name-button">Delete Name</button>
+
         <h2>Selected Name</h2>
         <p id="selected-name"></p>
+
         <h2>Selection Counts</h2>
         <ul id="counts-list"></ul>
     </div>
@@ -218,7 +92,7 @@
             countsList.empty();
             for (const [name, count] of Object.entries(counts)) {
                 countsList.append(`<li>${name}: ${count} times</li>`);
-            }
+            }; // Weird extra parenthesis
         }
 
         // Switch to a different class
@@ -226,29 +100,32 @@
             const classTabs = $("#class-tabs");
             classTabs.empty();
             classNames.forEach(className => {
-                const tab = $(`<div class="tab" data-class="${className}">${className}</div>`);
-                tab.click(function () {
+                const tab = $(`<div class="tab">${className}</div>`);
+                tab.click(() => {
                     selectedClass = className;
-                    $(".tab").removeClass("active");
-                    $(this).addClass("active");
                     loadClassData();
+                    $(".tab").removeClass("active");
+                    tab.addClass("active");
                 });
                 classTabs.append(tab);
             });
-            // Set the first tab as active by default
             $(".tab").first().addClass("active");
         }
 
-        // Load the data for the selected class
+        // Load class data
         function loadClassData() {
-            $.get(`/get_counts?class_name=${selectedClass}`, function (counts) {
+            $.get("/get_names", { class_name: selectedClass }, function (names) {
+                updateNamesList(names);
+            });
+
+            $.get("/get_counts", { class_name: selectedClass }, function (counts) {
                 updateCountsList(counts);
-                updateNamesList(counts); // Assuming names and counts are linked
             });
         }
 
+        // Event handlers for creating/deleting classes
         $(document).ready(function () {
-            // Create a new class
+            // Create class
             $("#create-class-button").click(function () {
                 const className = $("#create-class-input").val();
                 if (className) {
@@ -261,17 +138,16 @@
                 }
             });
 
-            // Delete the selected class
+            // Delete class
             $("#delete-class-button").click(function () {
                 $.post("/delete_class", { class_name: selectedClass }, function (response) {
                     if (response.success) {
                         updateClassTabs(response.class_names);
-                        loadClassData();
                     }
                 });
             });
 
-            // Add a name to the selected class
+            // Add name
             $("#add-name-button").click(function () {
                 const name = $("#name-input").val();
                 if (name) {
@@ -284,20 +160,20 @@
                 }
             });
 
-            // Delete a name from the selected class
+            // Delete name
             $("#delete-name-button").click(function () {
-                const name = $("#name-input").val();
+                const name = $("#delete-name-input").val();
                 if (name) {
                     $.post("/delete_name", { class_name: selectedClass, name: name }, function (response) {
                         if (response.success) {
                             updateNamesList(response.names);
-                            $("#name-input").val("");
+                            $("#delete-name-input").val("");
                         }
                     });
                 }
             });
 
-            // Select a name from the selected class
+            // Select name
             $("#select-name-button").click(function () {
                 $.post("/select_name", { class_name: selectedClass }, function (response) {
                     if (response.success) {
@@ -309,19 +185,18 @@
                 });
             });
 
-            // Reset the selected class
+            // Reset
             $("#reset-button").click(function () {
                 $.post("/reset", { class_name: selectedClass }, function (response) {
                     if (response.success) {
-                        loadClassData();
+                        updateNamesList([]);
+                        updateCountsList({});
                     }
                 });
             });
 
             // Load initial class data
-            $.get("/get_counts", { class_name: selectedClass }, function (counts) {
-                updateCountsList(counts);
-            });
+            loadClassData();
         });
     </script>
 </body>
