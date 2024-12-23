@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Selector</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Name Selector</h1>
+        <div>
+            <input type="text" id="name-input" placeholder="Enter name">
+            <button id="add-name-button">Add Name</button>
+        </div>
+        <h2>Names List</h2>
+        <ul id="names-list"></ul>
+        <button id="select-name-button">Select Name</button>
+        <h2>Selected Name</h2>
+        <p id="selected-name"></p>
+        <h2>Selection Counts</h2>
+        <ul id="counts-list"></ul>
+    </div>
+
+    <script>
+        function updateNamesList(names) {
+            const namesList = $("#names-list");
+            namesList.empty();
+            names.forEach(name => {
+                namesList.append(`<li>${name}</li>`);
+            });
+        }
+
+        function updateCountsList(counts) {
+            const countsList = $("#counts-list");
+            countsList.empty();
+            for (const [name, count] of Object.entries(counts)) {
+                countsList.append(`<li>${name}: ${count} times</li>`);
+            }
+        }
+
+        $(document).ready(function () {
+            // Add a name
+            $("#add-name-button").click(function () {
+                const name = $("#name-input").val();
+                if (name) {
+                    $.post("/add_name", { name: name }, function (response) {
+                        if (response.success) {
+                            updateNamesList(response.names);
+                            $("#name-input").val("");
+                        }
+                    });
+                }
+            });
+
+            // Select a name
+            $("#select-name-button").click(function () {
+                $.post("/select_name", {}, function (response) {
+                    if (response.success) {
+                        $("#selected-name").text(response.selected_name);
+                        updateCountsList(response.counts);
+                    } else {
+                        alert(response.error);
+                    }
+                });
+            });
+
+            // Load counts on page load
+            $.get("/get_counts", function (counts) {
+                updateCountsList(counts);
+            });
+        });
+    </script>
+</body>
+</html>
